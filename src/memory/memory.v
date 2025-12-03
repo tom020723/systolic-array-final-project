@@ -71,7 +71,7 @@ reg8 memory_B31(.in(B31), .clk(clk), .rst(rst), .clear(false), .out(out_B31));
 reg8 memory_B32(.in(B32), .clk(clk), .rst(rst), .clear(false), .out(out_B32));
 reg8 memory_B33(.in(B33), .clk(clk), .rst(rst), .clear(false), .out(out_B33));
 
-
+/*
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // OUTPUT1
 // This is for selecting which component to pick in the Input Matrix 4x4
@@ -135,7 +135,7 @@ four_by_four_out_module four_by_four__B3(
 
 // This is for selecting which component to pick A or B
 two_to_one_mux_module regout3_output(.a(A3_out), .b(B3_out), .s(address3[4]), .out(out3));
-
+*/
 
 endmodule
 
