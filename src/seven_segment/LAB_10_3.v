@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+// `timescale 1ns / 1ps
 module LAB_10_3 (
     input  clk,
     input  rstb,

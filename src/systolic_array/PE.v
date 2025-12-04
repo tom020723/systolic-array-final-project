@@ -12,6 +12,7 @@ module pe #(
     input [ACC_W-1: 0] psum_in,    // partial sum input (flows vertically)
     
     output [DATA_W-1: 0] a_out,    // activation output to next PE
+    output [DATA_W-1: 0] weight_out, // weight output to next PE (only during load)
     output [ACC_W-1: 0] psum_out   // partial sum output to next PE
     );
     
@@ -37,6 +38,10 @@ module pe #(
 
     // Activation flows horizontally through register
     reg8 reg_a(.clk(clk), .rst(rst), .clear(clear), .in(a_in), .out(a_out));
+    
+    // Weight flows to next PE: directly output weight_reg during load phase
+    // Weight_reg already provides 1 cycle delay from weight_in
+    assign weight_out = weight_load ? weight_reg : 8'b0;
     
     // Partial sum flows vertically through register
     reg8 reg_psum(.clk(clk), .rst(rst), .clear(clear), .in(add_out), .out(psum_out));
