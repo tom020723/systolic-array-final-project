@@ -2,12 +2,11 @@ module conv_3x3 (
     input clk,
     input rst,
     input start,        // Start convolution operation
-    input weight_load,  // Weight loading enable signal
 
-    // Weight inputs for each PE (9 weights total)
-    input [7:0] w_11, w_12, w_13,  // Row 1 weights
-    input [7:0] w_21, w_22, w_23,  // Row 2 weights
-    input [7:0] w_31, w_32, w_33,  // Row 3 weights
+    // Weight inputs (3 weights for 3 columns)
+    input [7:0] w_31, w_32, w_33,  // Bottom row weights (loaded first)
+    input [7:0] w_21, w_22, w_23,  // Middle row weights
+    input [7:0] w_11, w_12, w_13,  // Top row weights (loaded last)
 
     // input map(4x4)
     input [7:0] in_11, in_12, in_13, in_14,
@@ -24,31 +23,54 @@ module conv_3x3 (
     // ========================================
     // State Machine
     // ========================================
-    reg [3:0] state, next_state;
+    reg [4:0] state, next_state;
     
     // State definitions
-    parameter IDLE = 4'd0;
-    parameter CONV_11_1 = 4'd1;  // conv_out_11 calculation
-    parameter CONV_11_2 = 4'd2;
-    parameter CONV_11_3 = 4'd3;
-    parameter CONV_12_1 = 4'd4;  // conv_out_12 calculation
-    parameter CONV_12_2 = 4'd5;
-    parameter CONV_12_3 = 4'd6;
-    parameter CONV_21_1 = 4'd7;  // conv_out_21 calculation
-    parameter CONV_21_2 = 4'd8;
-    parameter CONV_21_3 = 4'd9;
-    parameter CONV_22_1 = 4'd10; // conv_out_22 calculation
-    parameter CONV_22_2 = 4'd11;
-    parameter CONV_22_3 = 4'd12;
-    parameter DONE = 4'd13;
+    parameter IDLE = 5'd0;
+    
+    // Weight loading states (3 cycles)
+    parameter WEIGHT_LOAD_1 = 5'd1;
+    parameter WEIGHT_LOAD_2 = 5'd2;
+    parameter WEIGHT_LOAD_3 = 5'd3;
+    
+    // Convolution 11 (5 cycles)
+    parameter CONV_11_1 = 5'd4;
+    parameter CONV_11_2 = 5'd5;
+    parameter CONV_11_3 = 5'd6;
+    parameter CONV_11_4 = 5'd7;
+    parameter CONV_11_5 = 5'd8;
+    
+    // Convolution 12 (5 cycles)
+    parameter CONV_12_1 = 5'd9;
+    parameter CONV_12_2 = 5'd10;
+    parameter CONV_12_3 = 5'd11;
+    parameter CONV_12_4 = 5'd12;
+    parameter CONV_12_5 = 5'd13;
+    
+    // Convolution 21 (5 cycles)
+    parameter CONV_21_1 = 5'd14;
+    parameter CONV_21_2 = 5'd15;
+    parameter CONV_21_3 = 5'd16;
+    parameter CONV_21_4 = 5'd17;
+    parameter CONV_21_5 = 5'd18;
+    
+    // Convolution 22 (5 cycles)
+    parameter CONV_22_1 = 5'd19;
+    parameter CONV_22_2 = 5'd20;
+    parameter CONV_22_3 = 5'd21;
+    parameter CONV_22_4 = 5'd22;
+    parameter CONV_22_5 = 5'd23;
+    
+    parameter DONE = 5'd24;
 
     // ========================================
     // SA3x3 Inputs/Outputs
     // ========================================
+    reg [7:0] w_in1, w_in2, w_in3;
     reg [7:0] act_in1, act_in2, act_in3;
     reg [7:0] psum_in1, psum_in2, psum_in3;
     wire [7:0] psum_out1, psum_out2, psum_out3;
-    reg clear;
+    reg clear, weight_load;
 
     // ========================================
     // Instantiate 3x3 Systolic Array
@@ -58,9 +80,7 @@ module conv_3x3 (
         .rst(rst),
         .clear(clear),
         .weight_load(weight_load),
-        .w_11(w_11), .w_12(w_12), .w_13(w_13),
-        .w_21(w_21), .w_22(w_22), .w_23(w_23),
-        .w_31(w_31), .w_32(w_32), .w_33(w_33),
+        .w_in1(w_in1), .w_in2(w_in2), .w_in3(w_in3),
         .act_in1(act_in1),
         .act_in2(act_in2),
         .act_in3(act_in3),
@@ -107,30 +127,43 @@ module conv_3x3 (
         case (state)
             IDLE: begin
                 if (start)
-                    next_state = CONV_11_1;
+                    next_state = WEIGHT_LOAD_1;
                 else
                     next_state = IDLE;
             end
             
+            // Weight Loading
+            WEIGHT_LOAD_1: next_state = WEIGHT_LOAD_2;
+            WEIGHT_LOAD_2: next_state = WEIGHT_LOAD_3;
+            WEIGHT_LOAD_3: next_state = CONV_11_1;
+            
             // Conv 11
             CONV_11_1: next_state = CONV_11_2;
             CONV_11_2: next_state = CONV_11_3;
-            CONV_11_3: next_state = CONV_12_1;
+            CONV_11_3: next_state = CONV_11_4;
+            CONV_11_4: next_state = CONV_11_5;
+            CONV_11_5: next_state = CONV_12_1;
             
             // Conv 12
             CONV_12_1: next_state = CONV_12_2;
             CONV_12_2: next_state = CONV_12_3;
-            CONV_12_3: next_state = CONV_21_1;
+            CONV_12_3: next_state = CONV_12_4;
+            CONV_12_4: next_state = CONV_12_5;
+            CONV_12_5: next_state = CONV_21_1;
             
             // Conv 21
             CONV_21_1: next_state = CONV_21_2;
             CONV_21_2: next_state = CONV_21_3;
-            CONV_21_3: next_state = CONV_22_1;
+            CONV_21_3: next_state = CONV_21_4;
+            CONV_21_4: next_state = CONV_21_5;
+            CONV_21_5: next_state = CONV_22_1;
             
             // Conv 22
             CONV_22_1: next_state = CONV_22_2;
             CONV_22_2: next_state = CONV_22_3;
-            CONV_22_3: next_state = DONE;
+            CONV_22_3: next_state = CONV_22_4;
+            CONV_22_4: next_state = CONV_22_5;
+            CONV_22_5: next_state = DONE;
             
             DONE: next_state = IDLE;
             
@@ -143,6 +176,9 @@ module conv_3x3 (
     // ========================================
     always @(*) begin
         // Default values
+        w_in1 = 8'd0;
+        w_in2 = 8'd0;
+        w_in3 = 8'd0;
         act_in1 = 8'd0;
         act_in2 = 8'd0;
         act_in3 = 8'd0;
@@ -150,6 +186,7 @@ module conv_3x3 (
         psum_in2 = 8'd0;
         psum_in3 = 8'd0;
         clear = 1'b0;
+        weight_load = 1'b0;
         reg_enable_11 = 1'b0;
         reg_enable_12 = 1'b0;
         reg_enable_21 = 1'b0;
@@ -162,27 +199,60 @@ module conv_3x3 (
             end
             
             // ========================================
+            // Weight Loading (3 cycles)
+            // ========================================
+            WEIGHT_LOAD_1: begin
+                weight_load = 1'b1;
+                w_in1 = w_31;  // Bottom row to column 1
+                w_in2 = w_32;  // Bottom row to column 2
+                w_in3 = w_33;  // Bottom row to column 3
+            end
+            
+            WEIGHT_LOAD_2: begin
+                weight_load = 1'b1;
+                w_in1 = w_21;  // Middle row to column 1
+                w_in2 = w_22;  // Middle row to column 2
+                w_in3 = w_23;  // Middle row to column 3
+            end
+            
+            WEIGHT_LOAD_3: begin
+                weight_load = 1'b1;
+                w_in1 = w_11;  // Top row to column 1
+                w_in2 = w_12;  // Top row to column 2
+                w_in3 = w_13;  // Top row to column 3
+            end
+            
+            // ========================================
             // Convolution Output 11 (top-left 3x3)
             // ========================================
             CONV_11_1: begin
-                // Clock 1: Feed row 3 (bottom row of window)
                 act_in1 = in_31;
                 act_in2 = 8'd0;
                 act_in3 = 8'd0;
             end
             
             CONV_11_2: begin
-                // Clock 2: Feed row 2 and row 3
                 act_in1 = in_21;
                 act_in2 = in_32;
                 act_in3 = 8'd0;
             end
             
             CONV_11_3: begin
-                // Clock 3: Feed all three rows
                 act_in1 = in_11;
                 act_in2 = in_22;
                 act_in3 = in_33;
+            end
+            
+            CONV_11_4: begin
+                act_in1 = 8'd0;
+                act_in2 = in_12;
+                act_in3 = in_23;
+            end
+            
+            CONV_11_5: begin
+                act_in1 = 8'd0;
+                act_in2 = 8'd0;
+                act_in3 = in_13;
                 reg_enable_11 = 1'b1;  // Store result
             end
             
@@ -206,6 +276,18 @@ module conv_3x3 (
                 act_in1 = in_12;
                 act_in2 = in_23;
                 act_in3 = in_34;
+            end
+            
+            CONV_12_4: begin
+                act_in1 = 8'd0;
+                act_in2 = in_13;
+                act_in3 = in_24;
+            end
+            
+            CONV_12_5: begin
+                act_in1 = 8'd0;
+                act_in2 = 8'd0;
+                act_in3 = in_14;
                 reg_enable_12 = 1'b1;  // Store result
             end
             
@@ -229,6 +311,18 @@ module conv_3x3 (
                 act_in1 = in_21;
                 act_in2 = in_32;
                 act_in3 = in_43;
+            end
+            
+            CONV_21_4: begin
+                act_in1 = 8'd0;
+                act_in2 = in_22;
+                act_in3 = in_33;
+            end
+            
+            CONV_21_5: begin
+                act_in1 = 8'd0;
+                act_in2 = 8'd0;
+                act_in3 = in_23;
                 reg_enable_21 = 1'b1;  // Store result
             end
             
@@ -252,6 +346,18 @@ module conv_3x3 (
                 act_in1 = in_22;
                 act_in2 = in_33;
                 act_in3 = in_44;
+            end
+            
+            CONV_22_4: begin
+                act_in1 = 8'd0;
+                act_in2 = in_23;
+                act_in3 = in_34;
+            end
+            
+            CONV_22_5: begin
+                act_in1 = 8'd0;
+                act_in2 = 8'd0;
+                act_in3 = in_24;
                 reg_enable_22 = 1'b1;  // Store result
             end
             
