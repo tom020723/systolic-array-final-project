@@ -1,4 +1,4 @@
-module memory_module_2 (
+module memory_module (
     input clk,
     input rst,
 

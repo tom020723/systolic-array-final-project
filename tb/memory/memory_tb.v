@@ -34,7 +34,7 @@ module tb_memory_module;
     // ------------------------------------------------
     // MODULE INSTANCE
     // ------------------------------------------------
-    memory_module_2 uut (
+    memory_module uut (
         .clk(clk), .rst(rst), 
         .A11(A11), .A12(A12), .A13(A13), .A14(A14),
         .A21(A21), .A22(A22), .A23(A23), .A24(A24),

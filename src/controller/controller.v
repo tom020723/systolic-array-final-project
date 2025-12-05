@@ -35,90 +35,103 @@ module controller (
     
     // State definitions
     parameter IDLE          = 4'd0;
-    parameter LOAD_WEIGHT   = 4'd1;
-    parameter CONV_PE       = 4'd2;
-    parameter WAIT_PE       = 4'd3;
-    parameter CONV_SA2X2    = 4'd4;
-    parameter WAIT_SA2X2    = 4'd5;
-    parameter CONV_SA3X3    = 4'd6;
-    parameter WAIT_SA3X3    = 4'd7;
-    parameter DISPLAY       = 4'd8;
-    parameter DONE_STATE    = 4'd9;
+    parameter CONV_PE       = 4'd1;
+    parameter WAIT_PE       = 4'd2;
+    parameter CONV_SA2X2    = 4'd3;
+    parameter WAIT_SA2X2    = 4'd4;
+    parameter CONV_SA3X3    = 4'd5;
+    parameter WAIT_SA3X3    = 4'd6;
+    parameter DISPLAY       = 4'd7;
+    parameter DONE_STATE    = 4'd8;
 
     // ========================================
     // Memory Signals
     // ========================================
-    reg mem_write_en;
-    reg [4:0] mem_addr;
-    reg [7:0] mem_data_in;
-    wire [7:0] mem_data_out;
+    wire [7:0] mem_out_A11, mem_out_A12, mem_out_A13, mem_out_A14;
+    wire [7:0] mem_out_A21, mem_out_A22, mem_out_A23, mem_out_A24;
+    wire [7:0] mem_out_A31, mem_out_A32, mem_out_A33, mem_out_A34;
+    wire [7:0] mem_out_A41, mem_out_A42, mem_out_A43, mem_out_A44;
+    wire [7:0] mem_out_B11, mem_out_B12, mem_out_B13;
+    wire [7:0] mem_out_B21, mem_out_B22, mem_out_B23;
+    wire [7:0] mem_out_B31, mem_out_B32, mem_out_B33;
     
-    // Memory instantiation (if needed)
-    // memory mem_inst (
-    //     .clk(clk),
-    //     .write_en(mem_write_en),
-    //     .addr(mem_addr),
-    //     .data_in(mem_data_in),
-    //     .data_out(mem_data_out)
-    // );
+    // Memory instantiation
+    memory_module mem_inst (
+        .clk(clk),
+        .rst(rst),
+        // Input matrix A (4x4)
+        .A11(input_map[0][0]), .A12(input_map[0][1]), .A13(input_map[0][2]), .A14(input_map[0][3]),
+        .A21(input_map[1][0]), .A22(input_map[1][1]), .A23(input_map[1][2]), .A24(input_map[1][3]),
+        .A31(input_map[2][0]), .A32(input_map[2][1]), .A33(input_map[2][2]), .A34(input_map[2][3]),
+        .A41(input_map[3][0]), .A42(input_map[3][1]), .A43(input_map[3][2]), .A44(input_map[3][3]),
+        // Input filter B (3x3)
+        .B11(weight[0][0]), .B12(weight[0][1]), .B13(weight[0][2]),
+        .B21(weight[1][0]), .B22(weight[1][1]), .B23(weight[1][2]),
+        .B31(weight[2][0]), .B32(weight[2][1]), .B33(weight[2][2]),
+        // Output matrix A (4x4)
+        .out_A11(mem_out_A11), .out_A12(mem_out_A12), .out_A13(mem_out_A13), .out_A14(mem_out_A14),
+        .out_A21(mem_out_A21), .out_A22(mem_out_A22), .out_A23(mem_out_A23), .out_A24(mem_out_A24),
+        .out_A31(mem_out_A31), .out_A32(mem_out_A32), .out_A33(mem_out_A33), .out_A34(mem_out_A34),
+        .out_A41(mem_out_A41), .out_A42(mem_out_A42), .out_A43(mem_out_A43), .out_A44(mem_out_A44),
+        // Output filter B (3x3)
+        .out_B11(mem_out_B11), .out_B12(mem_out_B12), .out_B13(mem_out_B13),
+        .out_B21(mem_out_B21), .out_B22(mem_out_B22), .out_B23(mem_out_B23),
+        .out_B31(mem_out_B31), .out_B32(mem_out_B32), .out_B33(mem_out_B33)
+    );
 
     // ========================================
     // Conv PE (Processing Element) Signals
     // ========================================
     reg pe_start;
-    reg pe_weight_load;
     wire pe_done;
     wire [7:0] pe_out_11, pe_out_12, pe_out_21, pe_out_22;
     
     // PE convolution module instantiation
-    // conv_pe pe_inst (
-    //     .clk(clk),
-    //     .rst(rst),
-    //     .start(pe_start),
-    //     .weight_load(pe_weight_load),
-    //     .w_11(weight[0][0]), .w_12(weight[0][1]), .w_13(weight[0][2]),
-    //     .w_21(weight[1][0]), .w_22(weight[1][1]), .w_23(weight[1][2]),
-    //     .w_31(weight[2][0]), .w_32(weight[2][1]), .w_33(weight[2][2]),
-    //     .in_11(input_map[0][0]), .in_12(input_map[0][1]), .in_13(input_map[0][2]), .in_14(input_map[0][3]),
-    //     .in_21(input_map[1][0]), .in_22(input_map[1][1]), .in_23(input_map[1][2]), .in_24(input_map[1][3]),
-    //     .in_31(input_map[2][0]), .in_32(input_map[2][1]), .in_33(input_map[2][2]), .in_34(input_map[2][3]),
-    //     .in_41(input_map[3][0]), .in_42(input_map[3][1]), .in_43(input_map[3][2]), .in_44(input_map[3][3]),
-    //     .conv_out_11(pe_out_11), .conv_out_12(pe_out_12),
-    //     .conv_out_21(pe_out_21), .conv_out_22(pe_out_22),
-    //     .done(pe_done)
-    // );
+    conv_pe pe_inst (
+        .clk(clk),
+        .rst(rst),
+        .start(pe_start),
+        .w_11(mem_out_B11), .w_12(mem_out_B12), .w_13(mem_out_B13),
+        .w_21(mem_out_B21), .w_22(mem_out_B22), .w_23(mem_out_B23),
+        .w_31(mem_out_B31), .w_32(mem_out_B32), .w_33(mem_out_B33),
+        .in_11(mem_out_A11), .in_12(mem_out_A12), .in_13(mem_out_A13), .in_14(mem_out_A14),
+        .in_21(mem_out_A21), .in_22(mem_out_A22), .in_23(mem_out_A23), .in_24(mem_out_A24),
+        .in_31(mem_out_A31), .in_32(mem_out_A32), .in_33(mem_out_A33), .in_34(mem_out_A34),
+        .in_41(mem_out_A41), .in_42(mem_out_A42), .in_43(mem_out_A43), .in_44(mem_out_A44),
+        .conv_out_11(pe_out_11), .conv_out_12(pe_out_12),
+        .conv_out_21(pe_out_21), .conv_out_22(pe_out_22),
+        .done(pe_done)
+    );
 
     // ========================================
     // Conv SA2x2 (2x2 Systolic Array) Signals
     // ========================================
     reg sa2_start;
-    reg sa2_weight_load;
     wire sa2_done;
     wire [7:0] sa2_out_11, sa2_out_12, sa2_out_21, sa2_out_22;
     
     // 2x2 SA convolution module instantiation
-    // conv_sa2x2 sa2_inst (
-    //     .clk(clk),
-    //     .rst(rst),
-    //     .start(sa2_start),
-    //     .weight_load(sa2_weight_load),
-    //     .w_11(weight[0][0]), .w_12(weight[0][1]), .w_13(weight[0][2]),
-    //     .w_21(weight[1][0]), .w_22(weight[1][1]), .w_23(weight[1][2]),
-    //     .w_31(weight[2][0]), .w_32(weight[2][1]), .w_33(weight[2][2]),
-    //     .in_11(input_map[0][0]), .in_12(input_map[0][1]), .in_13(input_map[0][2]), .in_14(input_map[0][3]),
-    //     .in_21(input_map[1][0]), .in_22(input_map[1][1]), .in_23(input_map[1][2]), .in_24(input_map[1][3]),
-    //     .in_31(input_map[2][0]), .in_32(input_map[2][1]), .in_33(input_map[2][2]), .in_34(input_map[2][3]),
-    //     .in_41(input_map[3][0]), .in_42(input_map[3][1]), .in_43(input_map[3][2]), .in_44(input_map[3][3]),
-    //     .conv_out_11(sa2_out_11), .conv_out_12(sa2_out_12),
-    //     .conv_out_21(sa2_out_21), .conv_out_22(sa2_out_22),
-    //     .done(sa2_done)
-    // );
+    conv_2x2 sa2_inst (
+        .clk(clk),
+        .rst(rst),
+        .start(sa2_start),
+        .weight_load(1'b1),
+        .w_11(mem_out_B11), .w_12(mem_out_B12), .w_13(mem_out_B13),
+        .w_21(mem_out_B21), .w_22(mem_out_B22), .w_23(mem_out_B23),
+        .w_31(mem_out_B31), .w_32(mem_out_B32), .w_33(mem_out_B33),
+        .in_11(mem_out_A11), .in_12(mem_out_A12), .in_13(mem_out_A13), .in_14(mem_out_A14),
+        .in_21(mem_out_A21), .in_22(mem_out_A22), .in_23(mem_out_A23), .in_24(mem_out_A24),
+        .in_31(mem_out_A31), .in_32(mem_out_A32), .in_33(mem_out_A33), .in_34(mem_out_A34),
+        .in_41(mem_out_A41), .in_42(mem_out_A42), .in_43(mem_out_A43), .in_44(mem_out_A44),
+        .conv_out_11(sa2_out_11), .conv_out_12(sa2_out_12),
+        .conv_out_21(sa2_out_21), .conv_out_22(sa2_out_22),
+        .done(sa2_done)
+    );
 
     // ========================================
     // Conv 3x3 (3x3 Systolic Array) Signals
     // ========================================
     reg sa3_start;
-    reg sa3_weight_load;
     wire sa3_done;
     wire [7:0] sa3_out_11, sa3_out_12, sa3_out_21, sa3_out_22;
     
@@ -127,14 +140,14 @@ module controller (
         .clk(clk),
         .rst(rst),
         .start(sa3_start),
-        .weight_load(sa3_weight_load),
-        .w_11(weight[0][0]), .w_12(weight[0][1]), .w_13(weight[0][2]),
-        .w_21(weight[1][0]), .w_22(weight[1][1]), .w_23(weight[1][2]),
-        .w_31(weight[2][0]), .w_32(weight[2][1]), .w_33(weight[2][2]),
-        .in_11(input_map[0][0]), .in_12(input_map[0][1]), .in_13(input_map[0][2]), .in_14(input_map[0][3]),
-        .in_21(input_map[1][0]), .in_22(input_map[1][1]), .in_23(input_map[1][2]), .in_24(input_map[1][3]),
-        .in_31(input_map[2][0]), .in_32(input_map[2][1]), .in_33(input_map[2][2]), .in_34(input_map[2][3]),
-        .in_41(input_map[3][0]), .in_42(input_map[3][1]), .in_43(input_map[3][2]), .in_44(input_map[3][3]),
+        .weight_load(1'b1),
+        .w_11(mem_out_B11), .w_12(mem_out_B12), .w_13(mem_out_B13),
+        .w_21(mem_out_B21), .w_22(mem_out_B22), .w_23(mem_out_B23),
+        .w_31(mem_out_B31), .w_32(mem_out_B32), .w_33(mem_out_B33),
+        .in_11(mem_out_A11), .in_12(mem_out_A12), .in_13(mem_out_A13), .in_14(mem_out_A14),
+        .in_21(mem_out_A21), .in_22(mem_out_A22), .in_23(mem_out_A23), .in_24(mem_out_A24),
+        .in_31(mem_out_A31), .in_32(mem_out_A32), .in_33(mem_out_A33), .in_34(mem_out_A34),
+        .in_41(mem_out_A41), .in_42(mem_out_A42), .in_43(mem_out_A43), .in_44(mem_out_A44),
         .conv_out_11(sa3_out_11), .conv_out_12(sa3_out_12),
         .conv_out_21(sa3_out_21), .conv_out_22(sa3_out_22),
         .done(sa3_done)
@@ -166,11 +179,7 @@ module controller (
         case (state)
             IDLE: begin
                 if (start)
-                    next_state = LOAD_WEIGHT;
-            end
-            
-            LOAD_WEIGHT: begin
-                next_state = CONV_PE;
+                    next_state = CONV_PE;
             end
             
             CONV_PE: begin
@@ -220,32 +229,19 @@ module controller (
             done <= 1'b0;
             display_out <= 8'd0;
             pe_start <= 1'b0;
-            pe_weight_load <= 1'b0;
             sa2_start <= 1'b0;
-            sa2_weight_load <= 1'b0;
             sa3_start <= 1'b0;
-            sa3_weight_load <= 1'b0;
         end
         else begin
             // Default values
             pe_start <= 1'b0;
-            pe_weight_load <= 1'b0;
             sa2_start <= 1'b0;
-            sa2_weight_load <= 1'b0;
             sa3_start <= 1'b0;
-            sa3_weight_load <= 1'b0;
             done <= 1'b0;
             
             case (state)
                 IDLE: begin
                     display_out <= 8'd0;
-                end
-                
-                LOAD_WEIGHT: begin
-                    // Load weights to all modules
-                    pe_weight_load <= 1'b1;
-                    sa2_weight_load <= 1'b1;
-                    sa3_weight_load <= 1'b1;
                 end
                 
                 CONV_PE: begin
