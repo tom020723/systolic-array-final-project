@@ -21,6 +21,58 @@ module conv_2x2 (
     output reg done     // Convolution complete signal
 );
 
-
+    // ========================================
+    // SA_2x2 Instantiation
+    // ========================================
+    // SA_2x2 signals
+    wire [7:0] sa_w_in1, sa_w_in2;
+    wire [7:0] sa_act_in1, sa_act_in2;
+    wire [7:0] sa_psum_in1, sa_psum_in2;
+    wire [7:0] sa_psum_out1, sa_psum_out2;
+    
+    // SA_2x2 instantiation
+    sa2x2 sa_inst (
+        .clk(clk),
+        .rst(rst),
+        .clear(1'b0),
+        .weight_load(weight_load),
+        
+        // Weight inputs
+        .w_in1(sa_w_in1),
+        .w_in2(sa_w_in2),
+        
+        // Activation inputs
+        .act_in1(sa_act_in1),
+        .act_in2(sa_act_in2),
+        
+        // Partial sum inputs
+        .psum_in1(sa_psum_in1),
+        .psum_in2(sa_psum_in2),
+        
+        // Partial sum outputs
+        .psum_out1(sa_psum_out1),
+        .psum_out2(sa_psum_out2)
+    );
+    
+    // For now, assign dummy outputs
+    assign conv_out_11 = 8'd0;
+    assign conv_out_12 = 8'd0;
+    assign conv_out_21 = 8'd0;
+    assign conv_out_22 = 8'd0;
+    
+    // Temporary assignments for SA inputs (to avoid floating)
+    assign sa_w_in1 = 8'd0;
+    assign sa_w_in2 = 8'd0;
+    assign sa_act_in1 = 8'd0;
+    assign sa_act_in2 = 8'd0;
+    assign sa_psum_in1 = 8'd0;
+    assign sa_psum_in2 = 8'd0;
+    
+    always @(posedge clk or posedge rst) begin
+        if (rst)
+            done <= 1'b0;
+        else
+            done <= 1'b0;  // Placeholder
+    end
 
 endmodule

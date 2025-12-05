@@ -22,6 +22,13 @@ module tb_sa3x3;
     wire [7:0] psum_out1;
     wire [7:0] psum_out2;
     wire [7:0] psum_out3;
+    
+    // Sum of all psum outputs
+    wire [7:0] psum_sum_12;
+    wire [7:0] psum_sum_total;
+    
+    fadd8 add1 (.a(psum_out1), .b(psum_out2), .out(psum_sum_12));
+    fadd8 add2 (.a(psum_sum_12), .b(psum_out3), .out(psum_sum_total));
 
     // DUT
     sa3x3 dut (
@@ -174,8 +181,8 @@ module tb_sa3x3;
 
     // Monitor outputs
     always @(posedge clk) begin
-        $display("Time=%0t | psum_out1=%d, psum_out2=%d, psum_out3=%d", 
-                 $time, psum_out1, psum_out2, psum_out3);
+        $display("Time=%0t | psum_out1=%d, psum_out2=%d, psum_out3=%d | SUM=%d", 
+                 $time, psum_out1, psum_out2, psum_out3, psum_sum_total);
     end
 
 endmodule
