@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 // Weight Stationary 3x3 Systolic Array
 module sa3x3 (
     input clk,

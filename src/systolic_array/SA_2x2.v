@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 // Weight Stationary 2x2 Systolic Array
 module sa2x2 (
     input clk,
