@@ -33,35 +33,24 @@ module conv_3x3 (
     parameter WEIGHT_LOAD_2 = 5'd2;
     parameter WEIGHT_LOAD_3 = 5'd3;
     
-    // Convolution 11 (5 cycles)
-    parameter CONV_11_1 = 5'd4;
-    parameter CONV_11_2 = 5'd5;
-    parameter CONV_11_3 = 5'd6;
-    parameter CONV_11_4 = 5'd7;
-    parameter CONV_11_5 = 5'd8;
+    // Convolution computation (14 cycles for all 4 outputs)
+    parameter CONV_1  = 5'd4;
+    parameter CONV_2  = 5'd5;
+    parameter CONV_3  = 5'd6;
+    parameter CONV_4  = 5'd7;
+    parameter CONV_5  = 5'd8;
+    parameter CONV_6  = 5'd9;
+    parameter CONV_7  = 5'd10;
+    parameter CONV_8  = 5'd11;
+    parameter CONV_9  = 5'd12;
+    parameter CONV_10 = 5'd13;
+    parameter CONV_11 = 5'd14;
+    parameter CONV_12 = 5'd15;
+    parameter CONV_13 = 5'd16;
+    parameter CONV_14 = 5'd17;
+    parameter END_CONV = 5'd18;
     
-    // Convolution 12 (5 cycles)
-    parameter CONV_12_1 = 5'd9;
-    parameter CONV_12_2 = 5'd10;
-    parameter CONV_12_3 = 5'd11;
-    parameter CONV_12_4 = 5'd12;
-    parameter CONV_12_5 = 5'd13;
-    
-    // Convolution 21 (5 cycles)
-    parameter CONV_21_1 = 5'd14;
-    parameter CONV_21_2 = 5'd15;
-    parameter CONV_21_3 = 5'd16;
-    parameter CONV_21_4 = 5'd17;
-    parameter CONV_21_5 = 5'd18;
-    
-    // Convolution 22 (5 cycles)
-    parameter CONV_22_1 = 5'd19;
-    parameter CONV_22_2 = 5'd20;
-    parameter CONV_22_3 = 5'd21;
-    parameter CONV_22_4 = 5'd22;
-    parameter CONV_22_5 = 5'd23;
-    
-    parameter DONE = 5'd24;
+    parameter DONE = 5'd19;
 
     // ========================================
     // SA3x3 Inputs/Outputs
@@ -103,12 +92,13 @@ module conv_3x3 (
     // ========================================
     // Output Registers
     // ========================================
-    reg reg_enable_11, reg_enable_12, reg_enable_21, reg_enable_22;
+    reg [7:0] acc_11, acc_12, acc_21, acc_22;
     
-    reg8 out_reg_11 (.clk(clk), .rst(rst), .clear(1'b0), .in(reg_enable_11 ? sum_result : 8'd0), .out(conv_out_11));
-    reg8 out_reg_12 (.clk(clk), .rst(rst), .clear(1'b0), .in(reg_enable_12 ? sum_result : 8'd0), .out(conv_out_12));
-    reg8 out_reg_21 (.clk(clk), .rst(rst), .clear(1'b0), .in(reg_enable_21 ? sum_result : 8'd0), .out(conv_out_21));
-    reg8 out_reg_22 (.clk(clk), .rst(rst), .clear(1'b0), .in(reg_enable_22 ? sum_result : 8'd0), .out(conv_out_22));
+    // Output assignment
+    assign conv_out_11 = acc_11;
+    assign conv_out_12 = acc_12;
+    assign conv_out_21 = acc_21;
+    assign conv_out_22 = acc_22;
 
     // ========================================
     // State Update
@@ -135,35 +125,24 @@ module conv_3x3 (
             // Weight Loading
             WEIGHT_LOAD_1: next_state = WEIGHT_LOAD_2;
             WEIGHT_LOAD_2: next_state = WEIGHT_LOAD_3;
-            WEIGHT_LOAD_3: next_state = CONV_11_1;
+            WEIGHT_LOAD_3: next_state = CONV_1;
             
-            // Conv 11
-            CONV_11_1: next_state = CONV_11_2;
-            CONV_11_2: next_state = CONV_11_3;
-            CONV_11_3: next_state = CONV_11_4;
-            CONV_11_4: next_state = CONV_11_5;
-            CONV_11_5: next_state = CONV_12_1;
-            
-            // Conv 12
-            CONV_12_1: next_state = CONV_12_2;
-            CONV_12_2: next_state = CONV_12_3;
-            CONV_12_3: next_state = CONV_12_4;
-            CONV_12_4: next_state = CONV_12_5;
-            CONV_12_5: next_state = CONV_21_1;
-            
-            // Conv 21
-            CONV_21_1: next_state = CONV_21_2;
-            CONV_21_2: next_state = CONV_21_3;
-            CONV_21_3: next_state = CONV_21_4;
-            CONV_21_4: next_state = CONV_21_5;
-            CONV_21_5: next_state = CONV_22_1;
-            
-            // Conv 22
-            CONV_22_1: next_state = CONV_22_2;
-            CONV_22_2: next_state = CONV_22_3;
-            CONV_22_3: next_state = CONV_22_4;
-            CONV_22_4: next_state = CONV_22_5;
-            CONV_22_5: next_state = DONE;
+            // Convolution cycles
+            CONV_1:  next_state = CONV_2;
+            CONV_2:  next_state = CONV_3;
+            CONV_3:  next_state = CONV_4;
+            CONV_4:  next_state = CONV_5;
+            CONV_5:  next_state = CONV_6;
+            CONV_6:  next_state = CONV_7;
+            CONV_7:  next_state = CONV_8;
+            CONV_8:  next_state = CONV_9;
+            CONV_9:  next_state = CONV_10;
+            CONV_10: next_state = CONV_11;
+            CONV_11: next_state = CONV_12;
+            CONV_12: next_state = CONV_13;
+            CONV_13: next_state = CONV_14;
+            CONV_14: next_state = END_CONV;
+            END_CONV: next_state = DONE;
             
             DONE: next_state = IDLE;
             
@@ -172,7 +151,7 @@ module conv_3x3 (
     end
 
     // ========================================
-    // Output Control Logic
+    // Control Logic
     // ========================================
     always @(*) begin
         // Default values
@@ -187,10 +166,6 @@ module conv_3x3 (
         psum_in3 = 8'd0;
         clear = 1'b0;
         weight_load = 1'b0;
-        reg_enable_11 = 1'b0;
-        reg_enable_12 = 1'b0;
-        reg_enable_21 = 1'b0;
-        reg_enable_22 = 1'b0;
         done = 1'b0;
 
         case (state)
@@ -198,173 +173,162 @@ module conv_3x3 (
                 clear = 1'b1;
             end
             
-            // ========================================
             // Weight Loading (3 cycles)
-            // ========================================
             WEIGHT_LOAD_1: begin
                 weight_load = 1'b1;
-                w_in1 = w_31;  // Bottom row to column 1
-                w_in2 = w_32;  // Bottom row to column 2
-                w_in3 = w_33;  // Bottom row to column 3
+                w_in1 = w_13;
+                w_in2 = w_12;
+                w_in3 = w_11;
             end
             
             WEIGHT_LOAD_2: begin
                 weight_load = 1'b1;
-                w_in1 = w_21;  // Middle row to column 1
-                w_in2 = w_22;  // Middle row to column 2
-                w_in3 = w_23;  // Middle row to column 3
+                w_in1 = w_23;
+                w_in2 = w_22;
+                w_in3 = w_21;
             end
             
             WEIGHT_LOAD_3: begin
                 weight_load = 1'b1;
-                w_in1 = w_11;  // Top row to column 1
-                w_in2 = w_12;  // Top row to column 2
-                w_in3 = w_13;  // Top row to column 3
+                w_in1 = w_33;
+                w_in2 = w_32;
+                w_in3 = w_31;
             end
             
-            // ========================================
-            // Convolution Output 11 (top-left 3x3)
-            // ========================================
-            CONV_11_1: begin
-                act_in1 = in_31;
+            // Convolution - Feed all 4 3x3 windows in parallel
+            // 4x4 Input Matrix: [1  2  3  4 ]
+            //                   [5  6  7  8 ]
+            //                   [9  10 11 12]
+            //                   [13 14 15 16]
+            
+            CONV_1: begin
+                act_in1 = in_13;  // 3
                 act_in2 = 8'd0;
                 act_in3 = 8'd0;
             end
             
-            CONV_11_2: begin
-                act_in1 = in_21;
-                act_in2 = in_32;
+            CONV_2: begin
+                act_in1 = in_12;  // 2
+                act_in2 = in_23;  // 7
                 act_in3 = 8'd0;
             end
             
-            CONV_11_3: begin
-                act_in1 = in_11;
-                act_in2 = in_22;
-                act_in3 = in_33;
+            CONV_3: begin
+                act_in1 = in_11;  // 1
+                act_in2 = in_22;  // 6
+                act_in3 = in_33;  // 11
             end
             
-            CONV_11_4: begin
+            CONV_4: begin
+                act_in1 = in_14;  // 4
+                act_in2 = in_21;  // 5
+                act_in3 = in_32;  // 10
+            end
+            
+            CONV_5: begin  // Result: C11
+                act_in1 = in_13;  // 3
+                act_in2 = in_24;  // 8
+                act_in3 = in_31;  // 9
+            end
+            
+            CONV_6: begin
+                act_in1 = in_12;  // 2
+                act_in2 = in_23;  // 7
+                act_in3 = in_34;  // 12
+            end
+            
+            CONV_7: begin
+                act_in1 = in_23;  // 7
+                act_in2 = in_22;  // 6
+                act_in3 = in_33;  // 11
+            end
+            
+            CONV_8: begin  // Result: C12
+                act_in1 = in_22;  // 6
+                act_in2 = in_33;  // 11
+                act_in3 = in_32;  // 10
+            end
+            
+            CONV_9: begin
+                act_in1 = in_21;  // 5
+                act_in2 = in_32;  // 10
+                act_in3 = in_43;  // 15
+            end
+            
+            CONV_10: begin
+                act_in1 = in_24;  // 8
+                act_in2 = in_31;  // 9
+                act_in3 = in_42;  // 14
+            end
+            
+            CONV_11: begin  // Result: C21
+                act_in1 = in_23;  // 7
+                act_in2 = in_34;  // 12
+                act_in3 = in_41;  // 13
+            end
+            
+            CONV_12: begin
+                act_in1 = in_22;  // 6
+                act_in2 = in_33;  // 11
+                act_in3 = in_44;  // 16
+            end
+            
+            CONV_13: begin
                 act_in1 = 8'd0;
-                act_in2 = in_12;
-                act_in3 = in_23;
+                act_in2 = in_32;  // 10
+                act_in3 = in_43;  // 15
             end
             
-            CONV_11_5: begin
-                act_in1 = 8'd0;
-                act_in2 = 8'd0;
-                act_in3 = in_13;
-                reg_enable_11 = 1'b1;  // Store result
-            end
-            
-            // ========================================
-            // Convolution Output 12 (top-right 3x3)
-            // ========================================
-            CONV_12_1: begin
-                clear = 1'b1;
-                act_in1 = in_32;
-                act_in2 = 8'd0;
-                act_in3 = 8'd0;
-            end
-            
-            CONV_12_2: begin
-                act_in1 = in_22;
-                act_in2 = in_33;
-                act_in3 = 8'd0;
-            end
-            
-            CONV_12_3: begin
-                act_in1 = in_12;
-                act_in2 = in_23;
-                act_in3 = in_34;
-            end
-            
-            CONV_12_4: begin
-                act_in1 = 8'd0;
-                act_in2 = in_13;
-                act_in3 = in_24;
-            end
-            
-            CONV_12_5: begin
-                act_in1 = 8'd0;
-                act_in2 = 8'd0;
-                act_in3 = in_14;
-                reg_enable_12 = 1'b1;  // Store result
-            end
-            
-            // ========================================
-            // Convolution Output 21 (bottom-left 3x3)
-            // ========================================
-            CONV_21_1: begin
-                clear = 1'b1;
-                act_in1 = in_41;
-                act_in2 = 8'd0;
-                act_in3 = 8'd0;
-            end
-            
-            CONV_21_2: begin
-                act_in1 = in_31;
-                act_in2 = in_42;
-                act_in3 = 8'd0;
-            end
-            
-            CONV_21_3: begin
-                act_in1 = in_21;
-                act_in2 = in_32;
-                act_in3 = in_43;
-            end
-            
-            CONV_21_4: begin
-                act_in1 = 8'd0;
-                act_in2 = in_22;
-                act_in3 = in_33;
-            end
-            
-            CONV_21_5: begin
+            CONV_14: begin  // Result: C22
                 act_in1 = 8'd0;
                 act_in2 = 8'd0;
-                act_in3 = in_23;
-                reg_enable_21 = 1'b1;  // Store result
+                act_in3 = in_42;  // 14
             end
-            
-            // ========================================
-            // Convolution Output 22 (bottom-right 3x3)
-            // ========================================
-            CONV_22_1: begin
-                clear = 1'b1;
-                act_in1 = in_42;
+
+            END_CONV: begin
+                act_in1 = 8'd0;
                 act_in2 = 8'd0;
                 act_in3 = 8'd0;
-            end
-            
-            CONV_22_2: begin
-                act_in1 = in_32;
-                act_in2 = in_43;
-                act_in3 = 8'd0;
-            end
-            
-            CONV_22_3: begin
-                act_in1 = in_22;
-                act_in2 = in_33;
-                act_in3 = in_44;
-            end
-            
-            CONV_22_4: begin
-                act_in1 = 8'd0;
-                act_in2 = in_23;
-                act_in3 = in_34;
-            end
-            
-            CONV_22_5: begin
-                act_in1 = 8'd0;
-                act_in2 = 8'd0;
-                act_in3 = in_24;
-                reg_enable_22 = 1'b1;  // Store result
             end
             
             DONE: begin
                 done = 1'b1;
             end
         endcase
+    end
+    
+    // ========================================
+    // Result Capture Logic (with pipeline delay consideration)
+    // ========================================
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            acc_11 <= 8'd0;
+            acc_12 <= 8'd0;
+            acc_21 <= 8'd0;
+            acc_22 <= 8'd0;
+        end
+        else if (state == IDLE) begin
+            acc_11 <= 8'd0;
+            acc_12 <= 8'd0;
+            acc_21 <= 8'd0;
+            acc_22 <= 8'd0;
+        end
+        else if (state == CONV_6) begin
+            // At CONV_6 (1 clk after CONV_5), sum_result contains window_11 result
+            acc_11 <= sum_result;
+        end
+        else if (state == CONV_9) begin
+            // At CONV_9 (1 clk after CONV_8), sum_result contains window_12 result
+            acc_12 <= sum_result;
+        end
+        else if (state == CONV_12) begin
+            // At CONV_12 (1 clk after CONV_11), sum_result contains window_21 result
+            acc_21 <= sum_result;
+        end
+        else if (state == END_CONV) begin
+            // At END_CONV (1 clk after CONV_14), sum_result contains window_22 result
+            acc_22 <= sum_result;
+        end
     end
 
 endmodule
