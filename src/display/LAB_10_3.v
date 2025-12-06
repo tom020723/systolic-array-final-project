@@ -116,21 +116,21 @@ module display_controller (
                 digit = 8'b0000_1000;
                 digit_num = idx_ones;
             end
-            3'd4: begin // Digit 5 - 값의 일의 자리
+            3'd4: begin // Digit 5 - (맨 오른쪽) - 값의 천의 자리 (항상 0)
                 digit = 8'b0001_0000;
-                digit_num = ones;
+                digit_num = 4'd0;
             end
-            3'd5: begin // Digit 6 - 값의 십의 자리
+            3'd5: begin // Digit 6 - 값의 백의 자리
                 digit = 8'b0010_0000;
-                digit_num = tens;
-            end
-            3'd6: begin // Digit 7 - 값의 백의 자리
-                digit = 8'b0100_0000;
                 digit_num = hundreds;
             end
-            3'd7: begin // Digit 8 (맨 왼쪽) - 값의 천의 자리 (항상 0)
+            3'd6: begin // Digit 7 - 값의 십의 자리
+                digit = 8'b0100_0000;
+                digit_num = tens;
+            end
+            3'd7: begin // Digit 8 - 값의 일의 자리
                 digit = 8'b1000_0000;
-                digit_num = 4'd0;
+                digit_num = ones;
             end
             default: begin
                 digit = 8'b0000_0000;
