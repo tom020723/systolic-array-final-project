@@ -1,8 +1,8 @@
+`timescale 1ps/1ps
 module conv_2x2 (
     input clk,
     input rst,
     input start,        // Start convolution operation
-    input weight_load,  // Weight loading enable signal
 
     // Weight inputs for each PE (9 weights total)
     input [7:0] w_11, w_12, w_13,  // Row 1 weights
@@ -68,11 +68,29 @@ module conv_2x2 (
     assign sa_psum_in1 = 8'd0;
     assign sa_psum_in2 = 8'd0;
     
+    // Temporary done signal logic - assert after 10 clocks
+    reg [3:0] clk_count;
+    
     always @(posedge clk or posedge rst) begin
-        if (rst)
+        if (rst) begin
             done <= 1'b0;
-        else
-            done <= 1'b0;  // Placeholder
+            clk_count <= 4'd0;
+        end
+        else if (start) begin
+            clk_count <= 4'd1;
+            done <= 1'b0;
+        end
+        else if (clk_count > 4'd0 && clk_count < 4'd10) begin
+            clk_count <= clk_count + 1'b1;
+            done <= 1'b0;
+        end
+        else if (clk_count == 4'd10) begin
+            done <= 1'b1;
+            clk_count <= 4'd0;
+        end
+        else begin
+            done <= 1'b0;
+        end
     end
 
 endmodule

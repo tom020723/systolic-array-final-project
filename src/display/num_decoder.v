@@ -17,6 +17,7 @@ module num_decoder (
             4'd7: seg_data = 8'b1110_0000;
             4'd8: seg_data = 8'b1111_1110;
             4'd9: seg_data = 8'b1110_0110;
+            default: seg_data = 8'b0000_0000;  // All segments off for undefined input
         endcase
     end
 endmodule

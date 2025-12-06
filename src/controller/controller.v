@@ -3,7 +3,10 @@ module controller (
     input rst,
     input start,            // Start signal
     output reg done,        // Completion signal
-    output reg [7:0] display_out  // Output for display
+    // Debug outputs for verification
+    output reg [7:0] pe_out_c11, pe_out_c12, pe_out_c21, pe_out_c22,
+    output reg [7:0] sa2_out_c11, sa2_out_c12, sa2_out_c21, sa2_out_c22,
+    output reg [7:0] sa3_out_c11, sa3_out_c12, sa3_out_c21, sa3_out_c22
 );
 
     // ========================================
@@ -115,7 +118,6 @@ module controller (
         .clk(clk),
         .rst(rst),
         .start(sa2_start),
-        .weight_load(1'b1),
         .w_11(mem_out_B11), .w_12(mem_out_B12), .w_13(mem_out_B13),
         .w_21(mem_out_B21), .w_22(mem_out_B22), .w_23(mem_out_B23),
         .w_31(mem_out_B31), .w_32(mem_out_B32), .w_33(mem_out_B33),
@@ -140,7 +142,6 @@ module controller (
         .clk(clk),
         .rst(rst),
         .start(sa3_start),
-        .weight_load(1'b1),
         .w_11(mem_out_B11), .w_12(mem_out_B12), .w_13(mem_out_B13),
         .w_21(mem_out_B21), .w_22(mem_out_B22), .w_23(mem_out_B23),
         .w_31(mem_out_B31), .w_32(mem_out_B32), .w_33(mem_out_B33),
@@ -214,7 +215,7 @@ module controller (
             end
             
             DONE_STATE: begin
-                next_state = IDLE;
+                next_state = DONE_STATE;  // Stay in DONE_STATE (keep done=1)
             end
             
             default: next_state = IDLE;
@@ -227,25 +228,43 @@ module controller (
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             done <= 1'b0;
-            display_out <= 8'd0;
             pe_start <= 1'b0;
             sa2_start <= 1'b0;
             sa3_start <= 1'b0;
+            // Initialize all result registers
+            pe_result[0][0] <= 8'd0;
+            pe_result[0][1] <= 8'd0;
+            pe_result[1][0] <= 8'd0;
+            pe_result[1][1] <= 8'd0;
+            sa2_result[0][0] <= 8'd0;
+            sa2_result[0][1] <= 8'd0;
+            sa2_result[1][0] <= 8'd0;
+            sa2_result[1][1] <= 8'd0;
+            sa3_result[0][0] <= 8'd0;
+            sa3_result[0][1] <= 8'd0;
+            sa3_result[1][0] <= 8'd0;
+            sa3_result[1][1] <= 8'd0;
+            // Initialize debug outputs
+            pe_out_c11 <= 8'd0; pe_out_c12 <= 8'd0; pe_out_c21 <= 8'd0; pe_out_c22 <= 8'd0;
+            sa2_out_c11 <= 8'd0; sa2_out_c12 <= 8'd0; sa2_out_c21 <= 8'd0; sa2_out_c22 <= 8'd0;
+            sa3_out_c11 <= 8'd0; sa3_out_c12 <= 8'd0; sa3_out_c21 <= 8'd0; sa3_out_c22 <= 8'd0;
         end
         else begin
             // Default values
             pe_start <= 1'b0;
             sa2_start <= 1'b0;
             sa3_start <= 1'b0;
-            done <= 1'b0;
+            // Don't reset done to 0 by default - let each state control it
             
             case (state)
                 IDLE: begin
-                    display_out <= 8'd0;
+                    // Wait for start signal
+                    done <= 1'b0;  // Clear done when idle
                 end
                 
                 CONV_PE: begin
                     pe_start <= 1'b1;
+                    done <= 1'b0;
                 end
                 
                 WAIT_PE: begin
@@ -255,6 +274,11 @@ module controller (
                         pe_result[0][1] <= pe_out_12;
                         pe_result[1][0] <= pe_out_21;
                         pe_result[1][1] <= pe_out_22;
+                        // Update debug outputs immediately
+                        pe_out_c11 <= pe_out_11;
+                        pe_out_c12 <= pe_out_12;
+                        pe_out_c21 <= pe_out_21;
+                        pe_out_c22 <= pe_out_22;
                     end
                 end
                 
@@ -269,6 +293,11 @@ module controller (
                         sa2_result[0][1] <= sa2_out_12;
                         sa2_result[1][0] <= sa2_out_21;
                         sa2_result[1][1] <= sa2_out_22;
+                        // Update debug outputs immediately
+                        sa2_out_c11 <= sa2_out_11;
+                        sa2_out_c12 <= sa2_out_12;
+                        sa2_out_c21 <= sa2_out_21;
+                        sa2_out_c22 <= sa2_out_22;
                     end
                 end
                 
@@ -283,16 +312,24 @@ module controller (
                         sa3_result[0][1] <= sa3_out_12;
                         sa3_result[1][0] <= sa3_out_21;
                         sa3_result[1][1] <= sa3_out_22;
+                        // Update debug outputs immediately
+                        sa3_out_c11 <= sa3_out_11;
+                        sa3_out_c12 <= sa3_out_12;
+                        sa3_out_c21 <= sa3_out_21;
+                        sa3_out_c22 <= sa3_out_22;
                     end
                 end
                 
                 DISPLAY: begin
-                    // Display results (example: show first SA3x3 result)
-                    display_out <= sa3_result[0][0];
+                    // Debug outputs already updated in WAIT states
                 end
                 
                 DONE_STATE: begin
-                    done <= 1'b1;
+                    done <= 1'b1;  // Keep done high
+                end
+                
+                default: begin
+                    // Stay in current state
                 end
             endcase
         end
